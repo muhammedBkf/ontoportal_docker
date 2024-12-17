@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 setup() {
   echo "[+] Setup UI"
   local env_path='.env'
@@ -10,16 +11,34 @@ setup() {
 
   source "$env_path"
 
-  if
-    [ -z "$ORGANIZATION_NAME" ]
-    [ -z "$COMPOSE_API_FILE_PATH" ]
-  then
-    echo "[-] Error: Missing required configurations. Please provide both ORGANIZATION_NAME and COMPOSE_API_FILE_PATH in  your .env file"
+  if [ -z "$ORGANIZATION_NAME" ] || [ -z "$COMPOSE_UI_FILE_PATH" ]; then
+    echo "[-] Error: Missing required configurations. Please provide both ORGANIZATION_NAME and COMPOSE_UI_FILE_PATH in your .env file"
     exit 1
   fi
-  echo "[+] Getting compose file from: $ORGANIZATION_NAME$COMPOSE_UI_FILE_PATH"
-  eval "curl -sS -L https://raw.githubusercontent.com/$ORGANIZATION_NAME$COMPOSE_UI_FILE_PATH -o docker-compose_ui.yml"
+
+  echo "[+] Getting compose file for UI"
+
+  # Define the local file path
+  local local_compose_file="docker-compose_ui.yml"
+
+  # Check if the local file exists
+  if [ -f "$local_compose_file" ]; then
+    echo "[+] Using local compose file: $local_compose_file"
+  else
+    echo "[+] Local compose file not found. Fetching from GitHub."
+    echo "[+] Getting compose file from: $ORGANIZATION_NAME$COMPOSE_UI_FILE_PATH"
+    eval "curl -sS -L https://raw.githubusercontent.com/$ORGANIZATION_NAME$COMPOSE_UI_FILE_PATH -o $local_compose_file"
+
+    # Check if the curl command was successful
+    if [ $? -ne 0 ]; then
+      echo "[-] Error: Failed to fetch the compose file from GitHub."
+      exit 1
+    fi
+  fi
 }
+
+# Call the setup function
+setup
 
 status_ok() {
   curl -sSf http://$1:3000 >/dev/null 2>&1
